@@ -1,0 +1,20 @@
+{
+  "auto_login": false,
+  "auto_save_interval": 5.0,
+  "enable_sound": true,
+  "language": "中文",
+  "log_level": "INFO",
+  "max_items": 100,
+  "recent_files": [],
+  "remember_password": true,
+  "shortcuts": {
+    "新建": "Ctrl+N",
+    "保存": "Ctrl+S",
+    "退出": "Ctrl+Q"
+  },
+  "theme": "浅色",
+  "username": "",
+  "window_height": 600,
+  "window_title": "我的应用",
+  "window_width": 800
+}
