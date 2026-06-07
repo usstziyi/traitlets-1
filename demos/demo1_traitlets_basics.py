@@ -103,7 +103,11 @@ def main():
 
     print("\n--- 9. tag() 元数据标记 ---")
     scores_trait = person.traits()["scores"]
+    # 实际意义 ： 
+    # config=True 表示该 trait 应暴露到配置系统中，用户可在配置文件或命令行中设置该 trait 的值
+    # sync=True 表示该 trait 的值需要在前后端之间同步。这些是 traitlets 在 Jupyter/IPython 生态中的约定用法。
     scores_trait.tag(config=True, sync=True)
+    # trait_metadata() 是 tag() 的"读"对应物，根据 key 读取 trait 的元数据
     metadata = person.trait_metadata("scores", "config")
     print(f"scores.config = {metadata}")
 
