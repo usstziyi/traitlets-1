@@ -102,6 +102,7 @@ def main():
     print(f"nickname has value: {person.trait_has_value('nickname')}")
 
     print("\n--- 9. tag() 元数据标记 ---")
+    # <class 'traitlets.traitlets.Dict'>
     scores_trait = person.traits()["scores"]
     # 实际意义 ： 
     # config=True 表示该 trait 应暴露到配置系统中，用户可在配置文件或命令行中设置该 trait 的值
