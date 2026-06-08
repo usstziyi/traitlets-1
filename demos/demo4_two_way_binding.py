@@ -61,10 +61,13 @@ class BindingManager:
         }
         self._bindings.append(entry)
 
+        # 只从 entry["get"]() 获取当前值 。
+        # 这样所有控件用一个统一逻辑处理，无论信号传什么参数都行。
         widget_signal.connect(lambda *a: self._widget_to_trait(entry))
 
         trait_obj.observe(lambda change: self._trait_to_widget(entry), trait_name)
 
+        # 让输入控件显示 trait 默认值
         widget_setter(getattr(trait_obj, trait_name))
 
     def unbind_all(self):
@@ -80,6 +83,7 @@ class BindingManager:
             return
         self._updating = True
         try:
+            # 把控件的当前值写入 trait
             setattr(entry["obj"], entry["name"], entry["get"]())
         finally:
             self._updating = False
@@ -121,14 +125,24 @@ class MainWindow(QMainWindow):
 
         rgb_group = QGroupBox("RGB 颜色设置")
         rgb_layout = QVBoxLayout(rgb_group)
-
+        """
+        等价于
+        self.red_slider   = QSlider(...)
+        self.red_spin     = QSpinBox(...)
+        self.green_slider = QSlider(...)
+        self.green_spin   = QSpinBox(...)
+        self.blue_slider  = QSlider(...)
+        self.blue_spin    = QSpinBox(...)
+        """
         for name, trait_name in [("R 红色", "red"), ("G 绿色", "green"), ("B 蓝色", "blue")]:
             row = QHBoxLayout()
 
+            # 复用
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setRange(0, 255)
             setattr(self, f"{trait_name}_slider", slider)
 
+            # 复用
             spin = QSpinBox()
             spin.setRange(0, 255)
             setattr(self, f"{trait_name}_spin", spin)
@@ -254,11 +268,22 @@ class MainWindow(QMainWindow):
 
         self._update_preview(None)
 
+    # 让预览区渲染默认颜色和文字
     def _update_preview(self, change):
         c = self.config
         display = c.label.upper() if c.uppercase else c.label
         r, g, b = c.red, c.green, c.blue
+        """
+        等价于
+        if c.alpha < 0.0:
+            a = 0.0
+        elif c.alpha > 1.0:
+            a = 1.0
+        else:
+            a = c.alpha
+        """
         a = max(0.0, min(1.0, c.alpha))
+
         color = f"rgba({r}, {g}, {b}, {a})"
 
         self.preview_label.setText(display)
@@ -278,3 +303,11 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+"""
+它们是互补关系:
+输入控件归 BindingManager 管理，
+预览区走 observe 回调，两者操作的是完全不同的控件。
+缺少任何一个都会导致窗口打开时对应区域显示不正确。
+"""
