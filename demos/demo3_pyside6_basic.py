@@ -117,9 +117,12 @@ class MainWindow(QMainWindow):
         log_layout.addWidget(self.log_text)
         main_layout.addWidget(log_group)
 
+        # 用Traitlets 装填 UI 的数值
+        # 此时都还是默认值
         self._traits_to_ui()
 
     def _connect_trait_signals(self):
+        # 注册一个观察者回调，监听所有 trait 变更
         self.settings.observe(self._on_any_trait_change)
 
         self.username_edit.textChanged.connect(self._on_ui_changed)
