@@ -24,7 +24,7 @@ from traitlets import (
     TraitError,
 )
 
-
+# 定义一个智能温控器类
 class Thermostat(HasTraits):
     target_temp = Float(26.0, help="目标温度（摄氏度）")
     current_temp = Float(25.0, help="当前温度（摄氏度）")
@@ -72,6 +72,37 @@ class Thermostat(HasTraits):
         if self.power and self.target_temp != self.current_temp:
             print(f"  [监听] 温差 = {abs(self.target_temp - self.current_temp):.1f}°C")
 
+
+
+"""
+@observe
+
+{
+    "type": "change",       # 通知类型（默认就是 'change'）
+    "name": "target_temp",  # 哪个 trait 变了
+    "old": 26.0,            # 旧值（变迁前）
+    "new": 28.0,            # 新值（变迁后）
+    "owner": <Thermostat>   # 哪个 HasTraits 实例
+}
+"""
+
+
+"""
+@validate
+
+{
+    "value": 10.0,          # 提议的新值（尚未生效！）
+    "owner": <Thermostat>,  # 哪个 HasTraits 实例
+    "trait": <Float(...)>   # trait 类型的元数据对象
+}
+proposal 这个名字同样精确—— "这是一个提案，等你审批" 。
+它只有 value 而没有 old / new ，因为这个值还 没有 被真正设置。
+你的校验器有三种选择：
+
+1. 批准 : return proposal["value"] （原样通过）
+2. 修正 : return 修正后的值 （如 fan_speed 超出范围时修正）
+3. 否决 : raise TraitError(...) （拒绝赋值）
+"""
 
 def main():
     print("=" * 60)
