@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QSlider,
     QCheckBox,
     QLabel,
+    QPushButton,
     QGroupBox,
 )
 from PySide6.QtCore import Qt, QObject, Signal
@@ -39,7 +40,9 @@ class BindingManager:
 
     def __init__(self):
         self._bindings = []
+        # 一个防重入锁,用于打破双向绑定的无限循环
         self._updating = False
+        self._count = 0
 
     def bind(self, trait_obj, trait_name, widget, widget_getter, widget_setter,
              widget_signal):
@@ -59,13 +62,16 @@ class BindingManager:
             "set": widget_setter,
             "signal": widget_signal,
         }
+        # 将绑定配置添加到内部列表，便于后续统一管理和清理
         self._bindings.append(entry)
 
-        # 只从 entry["get"]() 获取当前值 。
-        # 这样所有控件用一个统一逻辑处理，无论信号传什么参数都行。
+        # ui -> trait
+        # 当控件值变化时，自动更新 trait
         widget_signal.connect(lambda *a: self._widget_to_trait(entry))
 
-        trait_obj.observe(lambda change: self._trait_to_widget(entry), trait_name)
+        # trait -> ui
+        # 当 trait 值变化时，自动更新控件
+        trait_obj.observe(lambda change: self._trait_to_widget(entry, change), trait_name)
 
         # 让输入控件显示 trait 默认值
         widget_setter(getattr(trait_obj, trait_name))
@@ -84,16 +90,21 @@ class BindingManager:
         self._updating = True
         try:
             # 把控件的当前值写入 trait
+            # 等价于 entry["obj"].<trait_name> = entry["get"]()
+            # 即：将控件的当前值赋给 trait 对象的指定属性
             setattr(entry["obj"], entry["name"], entry["get"]())
         finally:
             self._updating = False
 
-    def _trait_to_widget(self, entry):
+    def _trait_to_widget(self, entry, change):
+        # 为了spin和slider联动，破例放开防重入锁
+        # 把守卫工作下放到qt内部
+        self._updating = False
         if self._updating:
             return
         self._updating = True
         try:
-            entry["set"](entry["new"])
+            entry["set"](change["new"])
         finally:
             self._updating = False
 
@@ -191,6 +202,10 @@ class MainWindow(QMainWindow):
         preview_layout.addWidget(self.info_label)
 
         main_layout.addWidget(preview_group)
+
+        self.reset_btn = QPushButton("恢复默认配置")
+        self.reset_btn.clicked.connect(self._reset_defaults)
+        main_layout.addWidget(self.reset_btn)
 
     def _bind_all(self):
         b = self.binder
@@ -292,6 +307,18 @@ class MainWindow(QMainWindow):
             f"color: {color}; background-color: rgba({r},{g},{b},0.2);"
         )
         self.info_label.setText(f"颜色: RGB({r},{g},{b})  Alpha: {a:.2f}  |  大写: {c.uppercase}")
+
+    def _reset_defaults(self):
+        defaults = {
+            "red": 128,
+            "green": 128,
+            "blue": 128,
+            "alpha": 1.0,
+            "label": "示例文字",
+            "uppercase": False,
+        }
+        for name, value in defaults.items():
+            setattr(self.config, name, value)
 
 
 def main():
