@@ -30,6 +30,7 @@ from traitlets import (
     Enum,
     List,
     Dict,
+    All,
     default,
     observe,
     validate,
@@ -128,11 +129,15 @@ class AppSettings(HasTraits):
         if value > 3600.0:
             return 3600.0
         return value
-
-    @observe("*")
+        
+    @observe(All)
     def _mark_modified(self, change):
+        # 用于区分"程序化加载"和"用户编辑"
+        # 只有用户编辑时才标记为修改状态
         if not self._loading:
+            # 标记为修改状态
             self._modified = True
+            print(f"已修改")
 
     def to_dict(self) -> dict[str, Any]:
         """
@@ -198,6 +203,9 @@ class AppSettings(HasTraits):
             print(f"  JSON 解析失败: {e}")
             return False
 
+    # 这是一个只读属性，向外暴露内部的修改状态
+    # @property — 将 modified 变成一个属性而非方法，
+    # 外部访问时写成 obj.modified 而不是 obj.modified() ，更简洁。
     @property
     def modified(self):
         return self._modified
@@ -440,6 +448,8 @@ class SettingsWindow(QMainWindow):
             if reply == QMessageBox.StandardButton.Yes:
                 self._save_json()
             elif reply == QMessageBox.StandardButton.Cancel:
+                # event.ignore() 告诉 Qt："忽略本次关闭事件"，窗口保持打开状态。
+                # 这是 Qt 中实现"取消关闭"的标准写法。
                 event.ignore()
                 return
         event.accept()
